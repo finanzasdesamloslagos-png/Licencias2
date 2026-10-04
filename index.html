@@ -66,6 +66,31 @@
   .datos { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--suave); margin-left: auto; }
   .datos button { padding: 4px 10px; font-size: 11px; }
   .tabs { margin-left: 8px; display: flex; gap: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .chip { padding: 6px 12px; border-radius: 16px; border: 1px solid var(--borde); background: #fff; cursor: pointer; font-weight: bold; font-size: 12px; color: var(--azul); }
+  .chip.activa { background: var(--azul2); border-color: var(--azul2); color: #fff; }
+  .barra-hojas { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: 900px; }
+  .barra-hojas input { flex: 1; min-width: 220px; }
+  .barra-hojas select { width: auto; background: #fff; font-weight: normal; }
+  .barra-hojas button { padding: 7px 12px; }
+  .notas { color: var(--suave); font-size: 12px; margin-top: 8px; }
+  .tabla-cont.hoja { max-height: 600px; }
+  .tabla-cont.hoja td { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  .tabla-cont.hoja tbody tr:first-child td { font-weight: normal; }
+  td.fila-n { color: var(--suave); text-align: right; background: #FAFAFA; }
+  .bloque-liq { border: 1px solid #e3e3e3; border-radius: 6px; margin: 10px 0; overflow: hidden; }
+  .bloque-liq h3 { margin: 0; padding: 8px 12px; font-size: 13px; background: #F4F6FA; color: var(--azul); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .bloque-liq h3 .cuenta { font-weight: normal; color: var(--suave); font-size: 12px; }
+  .bloque-liq .cuerpo { padding: 8px 12px; max-height: 260px; overflow: auto; font-size: 12px; }
+  .bloque-liq table td, .bloque-liq table th { padding: 4px 8px; }
+  .bloque-liq table th { position: static; background: #E9EDF4; color: #333; }
+  .tarjetas { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .tarjeta { border: 1px solid #e3e3e3; border-radius: 6px; padding: 10px 14px; min-width: 150px; }
+  .tarjeta b { display: block; font-size: 20px; color: var(--azul); }
+  .tarjeta span { font-size: 11px; color: var(--suave); }
+  .bloque-liq tbody tr:first-child td { font-weight: normal; }
+  .antes { color: var(--suave); text-decoration: line-through; }
+  .ahora { color: var(--verde); font-weight: bold; }
   @media (max-width: 760px) {
     .grid, .calc { grid-template-columns: 1fr; }
     label { text-align: left; }
@@ -109,6 +134,8 @@
   <div class="tabs">
     <button class="tab" data-vista="ingreso">Ingresar</button>
     <button class="tab" data-vista="buscar">Buscar</button>
+    <button class="tab" data-vista="hojas">Hojas</button>
+    <button class="tab" data-vista="liq">Liquidaciones</button>
   </div>
   <div class="usuario" id="usuario" style="display:none"><span id="usuarioEmail"></span><button id="btnSalir">Salir</button></div>
 </header>
@@ -200,6 +227,36 @@
       </table>
     </div>
   </section>
+  <!-- ======================= HOJAS ======================= -->
+  <section id="v-hojas" class="vista">
+    <div class="chips" id="chipsHojas"></div>
+    <div class="barra-hojas">
+      <input id="qHoja" placeholder="Filtrar filas (RUT, nombre, folio, mes…)" autocomplete="off">
+      <select id="ordenHoja"><option value="rev">Últimas filas primero</option><option value="asc">Como en la planilla</option></select>
+      <button id="btnRecargarHoja">↻ Recargar hoja</button>
+    </div>
+    <div class="notas" id="notasHoja"></div>
+    <div class="resumen" id="resumenHoja">Elige una hoja.</div>
+    <div class="tabla-cont hoja" id="tablaHojaCont" style="display:none">
+      <table><thead id="theadHoja"></thead><tbody id="tbodyHoja"></tbody></table>
+    </div>
+    <div class="acciones"><button id="btnMasHoja" style="display:none">Mostrar más filas</button></div>
+  </section>
+  <!-- ======================= LIQUIDACIONES ======================= -->
+  <section id="v-liq" class="vista">
+    <div class="seccion">CARGAR LIQUIDACIONES DEL MES (PDF)</div>
+    <p class="ayuda" style="font-style:normal;font-size:12px;margin:0 0 10px">Elige el PDF con todas las liquidaciones del mes. La página lo lee aquí mismo y te muestra
+      qué va a agregar y qué cambió. <b>Nada se guarda hasta que presiones CONFIRMAR.</b></p>
+    <div class="barra"><input id="pdfLiq" type="file" accept="application/pdf,.pdf" style="background:#fff;font-weight:normal"></div>
+    <div id="estadoLiq" class="resumen"></div>
+    <div id="previaLiq"></div>
+    <div class="acciones" id="accionesLiq" style="display:none">
+      <button class="primario" id="btnAplicarLiq">CONFIRMAR Y GUARDAR</button>
+      <button id="btnCancelarLiq">Cancelar</button>
+      <span id="estadoAplicar" class="cargando"></span>
+    </div>
+    <div id="resultadoLiq" class="aviso"></div>
+  </section>
 </main>
 
 <script>
@@ -207,7 +264,7 @@
 var API_URL = 'https://script.google.com/macros/s/AKfycbzNtC-hBzL6fkeLab5pXVTuJfZ2Wg-3VPOjcIZyUtaYR0dUAzOqchVJX_Vg2itESU2-kg/exec';
 // ====================================================================================
 
-var VISTA_INICIAL = location.hash === '#buscar' ? 'buscar' : 'ingreso';
+var VISTA_INICIAL = (location.hash || '').replace('#', '');
 var sesion = leerSesion(), cola = [];
 var configOk = API_URL.indexOf('PEGA_AQUI') < 0;
 
@@ -337,7 +394,8 @@ function aviso(el, tipo, html) {
 function mostrarVista(v) {
   document.querySelectorAll('.vista').forEach(function (s) { s.classList.toggle('activa', s.id === 'v-' + v); });
   document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('activa', t.dataset.vista === v); });
-  setTimeout(function () { (v === 'buscar' ? $('qBuscar') : $('rut')).focus(); }, 50);
+  setTimeout(function () { ({ buscar: $('qBuscar'), hojas: $('qHoja') }[v] || $('rut')).focus(); }, 50);
+  if (v === 'hojas' && !hojaActual) abrirHoja('Consolidado total');
 }
 document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { mostrarVista(t.dataset.vista); }); });
 
@@ -380,7 +438,7 @@ function cargarDatos(manual) {
     aviso($('resultado'), 'rojo', esc(e && e.message ? e.message : e));
   }).cargarTodo();
 }
-$('btnActualizar').addEventListener('click', function () { cargarDatos(true); });
+$('btnActualizar').addEventListener('click', function () { cargarDatos(true); cacheHojas = {}; if (hojaActual && $('v-hojas').classList.contains('activa')) abrirHoja(hojaActual, true); });
 // si la página estuvo abierta mucho rato, actualizar al volver a ella
 document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && DB && Date.now() - DB.cargadoMs > 10 * 60000) cargarDatos();
@@ -637,8 +695,276 @@ $('qBuscar').addEventListener('input', function () { clearTimeout(tBuscar); tBus
 $('qBuscar').addEventListener('keydown', function (e) { if (e.key === 'Enter') buscar(); });
 $('btnBuscar').addEventListener('click', buscar);
 
+
+// ------------------------------------------------------------------ hojas (solo lectura)
+var HOJAS = ['Consolidado total', 'BD IMPONIBLES', 'FUNCIONARIOS', '150-180 DIAS', 'CARENCIA 2026', 'POSTNATAL PARENTAL', 'LISTAS', 'INSTRUCCIONES'];
+var cacheHojas = {}, hojaActual = null, hojaFiltradas = [], hojaMostrar = 300;
+$('chipsHojas').innerHTML = HOJAS.map(function (h) { return '<button class="chip" data-hoja="' + esc(h) + '">' + esc(h) + '</button>'; }).join('');
+document.querySelectorAll('.chip').forEach(function (c) { c.addEventListener('click', function () { abrirHoja(c.dataset.hoja); }); });
+function abrirHoja(nombre, recargar) {
+  hojaActual = nombre;
+  document.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('activa', c.dataset.hoja === nombre); });
+  $('ordenHoja').value = (nombre === 'Consolidado total' || nombre === 'BD IMPONIBLES') ? 'rev' : 'asc';
+  if (cacheHojas[nombre] && !recargar) { pintarHoja(); return; }
+  $('resumenHoja').innerHTML = '<span class="cargando">Cargando ' + esc(nombre) + '…</span>';
+  $('tablaHojaCont').style.display = 'none'; $('btnMasHoja').style.display = 'none'; $('notasHoja').textContent = '';
+  servidor.run.withSuccessHandler(function (d) {
+    cacheHojas[nombre] = d;
+    d.filas.forEach(function (f) { f.texto = sinTildes(f.slice(1).join(' ')); });
+    if (hojaActual === nombre) pintarHoja();
+  }).withFailureHandler(function (e) { $('resumenHoja').textContent = 'Error: ' + (e.message || e); }).leerHoja(nombre);
+}
+function pintarHoja() {
+  var d = cacheHojas[hojaActual]; if (!d) return;
+  var q = sinTildes($('qHoja').value.trim()), pal = q.split(/\s+/).filter(String);
+  hojaFiltradas = d.filas.filter(function (f) { return pal.every(function (w) { return f.texto.indexOf(w) >= 0; }); });
+  if ($('ordenHoja').value === 'rev') hojaFiltradas = hojaFiltradas.slice().reverse();
+  hojaMostrar = 300;
+  $('notasHoja').innerHTML = d.notas.map(esc).join('<br>');
+  $('theadHoja').innerHTML = d.encabezado.length ? '<tr><th>Fila</th>' + d.encabezado.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>' : '';
+  pintarFilasHoja();
+}
+function pintarFilasHoja() {
+  var d = cacheHojas[hojaActual], filas = hojaFiltradas.slice(0, hojaMostrar);
+  $('resumenHoja').textContent = hojaActual + ': ' + hojaFiltradas.length.toLocaleString('es-CL') + ' filas' +
+    (hojaFiltradas.length !== d.filas.length ? ' de ' + d.filas.length.toLocaleString('es-CL') : '') +
+    (hojaFiltradas.length > hojaMostrar ? ' (se muestran ' + hojaMostrar + ')' : '') + ' · leída a las ' + d.cargado;
+  $('tablaHojaCont').style.display = filas.length ? 'block' : 'none';
+  $('tbodyHoja').innerHTML = filas.map(function (f) {
+    return '<tr><td class="fila-n">' + f[0] + '</td>' + f.slice(1).map(function (v) {
+      return '<td' + (/^[-$\s]*[\d.,]+%?$/.test(v) ? ' class="n"' : '') + ' title="' + esc(v) + '">' + esc(v) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  $('btnMasHoja').style.display = hojaFiltradas.length > hojaMostrar ? 'inline-block' : 'none';
+}
+var tHoja = null;
+$('qHoja').addEventListener('input', function () { clearTimeout(tHoja); tHoja = setTimeout(pintarHoja, 150); });
+$('ordenHoja').addEventListener('change', pintarHoja);
+$('btnMasHoja').addEventListener('click', function () { hojaMostrar += 300; pintarFilasHoja(); });
+$('btnRecargarHoja').addEventListener('click', function () { if (hojaActual) abrirHoja(hojaActual, true); });
+
+
+// ------------------------------------------------------------------ liquidaciones (PDF)
+// ===== Lector de liquidaciones (se pega tal cual en la página) =====
+// Convierte el texto de cada página del PDF en líneas (agrupando por altura) y luego lee cada liquidación.
+function paginaALineas(items) {
+  var filas = [];
+  items.forEach(function (it) {
+    if (!it.str || !it.str.trim()) return;
+    var x = it.transform[4], y = it.transform[5], w = it.width || 0;
+    var f = null;
+    for (var i = 0; i < filas.length; i++) if (Math.abs(filas[i].y - y) < 2.5) { f = filas[i]; break; }
+    if (!f) { f = { y: y, items: [] }; filas.push(f); }
+    f.items.push({ x: x, w: w, s: it.str });
+  });
+  filas.sort(function (a, b) { return b.y - a.y; });
+  return filas.map(function (f) {
+    f.items.sort(function (a, b) { return a.x - b.x; });
+    var linea = '', fin = null;
+    f.items.forEach(function (it) {
+      if (fin !== null) linea += (it.x - fin > 12) ? '   ' : (it.x - fin > 0.8 ? ' ' : '');
+      linea += it.s;
+      fin = it.x + it.w;
+    });
+    return linea;
+  }).join('\n');
+}
+
+var LIQ_AFPS = ['CAPITAL', 'HABITAT', 'PLANVITAL', 'AFP MODELO', 'MODELO', 'UNO', 'PROVIDA', 'CUPRUM'];
+var LIQ_SALUD = ['FONASA', 'NUEVA MAS VIDA', 'CONSALUD', 'COLMENA', 'CRUZ BLANCA', 'BANMEDICA', 'ESENCIAL', 'VIDA TRES'];
+var MESES_LIQ = { ENERO: 1, FEBRERO: 2, MARZO: 3, ABRIL: 4, MAYO: 5, JUNIO: 6, JULIO: 7, AGOSTO: 8, SEPTIEMBRE: 9, SETIEMBRE: 9, OCTUBRE: 10, NOVIEMBRE: 11, DICIEMBRE: 12 };
+
+function leerLiquidaciones(texto) {
+  var out = [];
+  texto.split(/(?=LIQUIDACION DE REMUNERACIONES)/).slice(1).forEach(function (b) {
+    function g(re) { var m = b.match(re); return m ? m[1].trim() : ''; }
+    var rut = g(/Rut\.*\s*:\s*([\d.]+\s*-\s*[\dkK])/).replace(/\s/g, '');
+    if (!rut) return;
+    var desc = b.indexOf('DESCUENTOS') >= 0 ? b.split('DESCUENTOS')[1].split('TOTAL DESCUENTOS')[0] : '';
+    var items = desc.split('\n').map(function (l) { var m = l.match(/^\s*(.+?)\s{2,}\$?\s*[\d.]+\s*$/); return m ? m[1].trim() : ''; }).filter(String);
+    var afp = items.filter(function (i) { return LIQ_AFPS.indexOf(i) >= 0; })[0] || '';
+    var salud = items.filter(function (i) { return LIQ_SALUD.indexOf(i) >= 0; })[0] || '';
+    var mes = g(/Mes:\s*([A-ZÁÉÍÓÚ]+)\s+de\s+\d{4}/).toUpperCase(), anio = g(/Mes:\s*[A-ZÁÉÍÓÚ]+\s+de\s+(\d{4})/);
+    var imp = g(/Total Imponible\s*:\s*\$?\s*([\d.]+)/);
+    out.push({
+      mes: MESES_LIQ[mes] || 0, anio: Number(anio) || 0,
+      nombre: g(/Nombre:\s*(.+?)(?:\s{2,}|$)/m), rut: rut,
+      run: Number(rut.split('-')[0].replace(/\./g, '')), dv: rut.split('-')[1].toUpperCase(),
+      cargo: g(/Cargo\.*\s*:\s*(.+?)(?:\s{2,}|$)/m), depto: g(/Departamento:\s*(.+?)(?:\s{2,}|$)/m),
+      categoria: g(/Categoria:\s*(\S+)/), nivel: g(/Nivel:\s*(\S+)/), horas: g(/Horas Jornada:\s*(\S+)/),
+      imponible: imp ? Number(imp.replace(/\./g, '')) : null,
+      dias: Number((g(/Dias Trabajados:\s*([\d,.]+)/) || '0').replace(',', '.')),
+      afp: afp, salud: salud
+    });
+  });
+  return out;
+}
+// ===== fin lector =====
+
+var PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
+var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+var MESES_NOMBRE = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+var ISAPRES = ['NUEVA MAS VIDA', 'CONSALUD', 'COLMENA', 'CRUZ BLANCA', 'BANMEDICA', 'ESENCIAL', 'VIDA TRES'];
+var previa = null;
+
+$('pdfLiq').addEventListener('change', function () {
+  var f = this.files[0];
+  previa = null; $('previaLiq').innerHTML = ''; $('accionesLiq').style.display = 'none'; aviso($('resultadoLiq'), '', '');
+  if (!f) return;
+  if (!DB) { $('estadoLiq').textContent = 'Espera a que terminen de cargar los datos y vuelve a elegir el archivo.'; return; }
+  $('estadoLiq').innerHTML = '<span class="cargando">Abriendo el PDF…</span>';
+  f.arrayBuffer().then(function (buf) {
+    return import(PDFJS_URL).then(function (pdfjs) {
+      pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      return pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
+    });
+  }).then(function (doc) {
+    var texto = '', p = 0;
+    function siguiente() {
+      p++;
+      if (p > doc.numPages) return Promise.resolve(texto);
+      $('estadoLiq').innerHTML = '<span class="cargando">Leyendo página ' + p + ' de ' + doc.numPages + '…</span>';
+      return doc.getPage(p).then(function (pg) { return pg.getTextContent(); })
+        .then(function (c) { texto += paginaALineas(c.items) + '\n'; return siguiente(); });
+    }
+    return siguiente();
+  }).then(function (texto) {
+    var lista = leerLiquidaciones(texto);
+    if (!lista.length) { $('estadoLiq').textContent = 'No encontré liquidaciones en ese PDF. ¿Es el PDF de liquidaciones de remuneraciones?'; return; }
+    armarPrevia(lista);
+  }).catch(function (e) {
+    $('estadoLiq').textContent = 'No se pudo leer el PDF: ' + (e && e.message ? e.message : e);
+  });
+});
+
+function armarPrevia(lista) {
+  // mes: el más repetido
+  var cont = {};
+  lista.forEach(function (l) { var k = l.anio + '-' + l.mes; cont[k] = (cont[k] || 0) + 1; });
+  var k = Object.keys(cont).sort(function (a, b) { return cont[b] - cont[a]; })[0].split('-');
+  var anio = Number(k[0]), mes = Number(k[1]);
+  var clave = anio + '-' + ('0' + mes).slice(-2);
+  var otroMes = lista.filter(function (l) { return l.anio !== anio || l.mes !== mes; });
+  lista = lista.filter(function (l) { return l.anio === anio && l.mes === mes; });
+
+  var nuevosImp = [], iguales = 0, distintos = [], cambiosAfp = [], cambiosSalud = [], vuelven = [], desvinc = [], nuevosFunc = [], vistos = {};
+  lista.forEach(function (l) {
+    if (vistos[l.run]) return; vistos[l.run] = 1;
+    var ya = DB.imp[l.run] && DB.imp[l.run][clave];
+    if (ya === undefined) nuevosImp.push(l);
+    else if (Math.round(ya) === l.imponible) iguales++;
+    else distintos.push({ l: l, antes: ya });
+    var f = DB.funcPorRun[l.run];
+    if (!f) {
+      var t = l.nombre.split(/\s+/);
+      var nombreCorto = t.length >= 3 ? t[2] + ' ' + t[0] + ' ' + t[1] : l.nombre;
+      var ent = l.salud && l.salud !== 'FONASA' ? l.salud : 'LA ARAUCANA';
+      nuevosFunc.push({ run: l.run, dv: l.dv, nombre: nombreCorto, nombreLiq: l.nombre, cargo: l.cargo,
+        calidad: /PLANTA/.test(l.depto) ? 'De Planta' : (/CONTRATA/.test(l.depto) ? 'A Contrata' : l.depto),
+        categoria: l.categoria, nivel: l.nivel, horas: l.horas, salud: l.salud, entidad: ent, afp: l.afp, rut: l.rut });
+      return;
+    }
+    // f = [run, dv, nombre, cargo, calidad, prevision, entidad, afp, situacion]
+    if (l.afp && txt(f[7]).toUpperCase() !== l.afp) cambiosAfp.push({ run: l.run, nombre: f[2], rut: formatearRut(f[0], f[1]), antes: f[7], ahora: l.afp });
+    if (l.salud && txt(f[5]).toUpperCase() !== l.salud) {
+      var entAhora = l.salud === 'FONASA' ? (ISAPRES.indexOf(txt(f[6]).toUpperCase()) >= 0 || !txt(f[6]) ? 'LA ARAUCANA' : f[6]) : l.salud;
+      cambiosSalud.push({ run: l.run, nombre: f[2], rut: formatearRut(f[0], f[1]), antes: f[5], ahora: l.salud, entAntes: f[6], entAhora: entAhora });
+    }
+    if (f[8] === 'SIN LIQUIDACIÓN RECIENTE') vuelven.push({ run: l.run, nombre: f[2], rut: formatearRut(f[0], f[1]) });
+    if (f[8] === 'DESVINCULADO') desvinc.push({ run: l.run, nombre: f[2], rut: formatearRut(f[0], f[1]) });
+  });
+  var faltan = DB.func.filter(function (f) { return f[8] === 'VIGENTE' && !vistos[f[0]]; })
+    .map(function (f) { return { run: f[0], nombre: f[2], rut: formatearRut(f[0], f[1]) }; });
+
+  previa = { anio: anio, mes: mes, lista: lista, nuevosImp: nuevosImp, cambiosAfp: cambiosAfp, cambiosSalud: cambiosSalud,
+             vuelven: vuelven, desvinc: desvinc, nuevosFunc: nuevosFunc, faltan: faltan };
+
+  var nombreMes = MESES_NOMBRE[mes - 1] + ' ' + anio;
+  $('estadoLiq').textContent = 'Liquidaciones de ' + nombreMes + ': ' + lista.length + ' leídas.' +
+    (otroMes.length ? ' (' + otroMes.length + ' de otro mes se ignoraron)' : '');
+  function tabla(cab, filas) {
+    return '<table><thead><tr>' + cab.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>' + filas.join('') + '</tbody></table>';
+  }
+  function chk(grupo, i, marcado) { return '<input type="checkbox" class="chk-' + grupo + '" data-i="' + i + '"' + (marcado ? ' checked' : '') + ' style="width:auto;min-height:0">'; }
+  function bloque(titulo, n, cuerpo, extra) {
+    return '<div class="bloque-liq"><h3><span>' + titulo + '</span><span class="cuenta">' + (extra || '') + n + '</span></h3>' +
+      (n ? '<div class="cuerpo">' + cuerpo + '</div>' : '') + '</div>';
+  }
+  var h = '<div class="tarjetas">' +
+    '<div class="tarjeta"><b>' + nuevosImp.length + '</b><span>imponibles nuevos para agregar</span></div>' +
+    '<div class="tarjeta"><b>' + iguales + '</b><span>ya estaban cargados (iguales)</span></div>' +
+    '<div class="tarjeta"><b>' + (cambiosAfp.length + cambiosSalud.length) + '</b><span>cambios de AFP o salud</span></div>' +
+    '<div class="tarjeta"><b>' + nuevosFunc.length + '</b><span>funcionarios nuevos</span></div></div>';
+  if (!nuevosImp.length && !cambiosAfp.length && !cambiosSalud.length && !nuevosFunc.length && !vuelven.length) {
+    h += '<div class="aviso verde ver">✔ Las liquidaciones de ' + nombreMes + ' ya están cargadas y no hay cambios de AFP ni de salud. No hay nada que guardar.</div>';
+  }
+  h += bloque('Imponibles nuevos (se agregan a BD IMPONIBLES)', nuevosImp.length,
+    tabla(['RUT', 'Nombre', 'Total imponible', 'Días'], nuevosImp.map(function (l) {
+      return '<tr><td>' + esc(l.rut) + '</td><td>' + esc(l.nombre) + '</td><td class="n">' + fmt(l.imponible) + '</td><td class="c">' + l.dias + '</td></tr>'; })));
+  if (distintos.length) h += bloque('⚠ Ya cargados pero con otro monto (no se cambian; revísalos a mano)', distintos.length,
+    tabla(['RUT', 'Nombre', 'En la planilla', 'En el PDF'], distintos.map(function (d) {
+      return '<tr><td>' + esc(d.l.rut) + '</td><td>' + esc(d.l.nombre) + '</td><td class="n">' + fmt(d.antes) + '</td><td class="n">' + fmt(d.l.imponible) + '</td></tr>'; })));
+  h += bloque('Cambios de AFP (FUNCIONARIOS)', cambiosAfp.length,
+    tabla(['', 'Nombre', 'RUT', 'AFP'], cambiosAfp.map(function (c, i) {
+      return '<tr><td>' + chk('afp', i, true) + '</td><td>' + esc(c.nombre) + '</td><td>' + esc(c.rut) + '</td><td><span class="antes">' + esc(c.antes || '(vacío)') + '</span> → <span class="ahora">' + esc(c.ahora) + '</span></td></tr>'; })));
+  h += bloque('Cambios de salud (FUNCIONARIOS)', cambiosSalud.length,
+    tabla(['', 'Nombre', 'RUT', 'Previsión de salud', 'Entidad para licencias'], cambiosSalud.map(function (c, i) {
+      return '<tr><td>' + chk('salud', i, true) + '</td><td>' + esc(c.nombre) + '</td><td>' + esc(c.rut) + '</td><td><span class="antes">' + esc(c.antes || '(vacío)') +
+        '</span> → <span class="ahora">' + esc(c.ahora) + '</span></td><td><span class="antes">' + esc(c.entAntes || '(vacío)') + '</span> → <span class="ahora">' + esc(c.entAhora) + '</span></td></tr>'; })));
+  h += bloque('Funcionarios nuevos (se agregan a FUNCIONARIOS)', nuevosFunc.length,
+    tabla(['', 'RUT', 'Nombre', 'Cargo', 'Calidad', 'Salud', 'AFP'], nuevosFunc.map(function (n, i) {
+      return '<tr><td>' + chk('nuevo', i, true) + '</td><td>' + esc(n.rut) + '</td><td>' + esc(n.nombreLiq) + '</td><td>' + esc(n.cargo) + '</td><td>' + esc(n.calidad) + '</td><td>' + esc(n.salud) + '</td><td>' + esc(n.afp) + '</td></tr>'; })));
+  if (vuelven.length) h += bloque('Vuelven a VIGENTE (estaban "sin liquidación reciente")', vuelven.length,
+    tabla(['', 'Nombre', 'RUT'], vuelven.map(function (v, i) { return '<tr><td>' + chk('vuelve', i, true) + '</td><td>' + esc(v.nombre) + '</td><td>' + esc(v.rut) + '</td></tr>'; })));
+  if (desvinc.length) h += bloque('⚠ Tienen liquidación pero figuran DESVINCULADOS (marca si quieres dejarlos VIGENTES)', desvinc.length,
+    tabla(['', 'Nombre', 'RUT'], desvinc.map(function (v, i) { return '<tr><td>' + chk('desv', i, false) + '</td><td>' + esc(v.nombre) + '</td><td>' + esc(v.rut) + '</td></tr>'; })));
+  if (faltan.length) h += bloque('Funcionarios VIGENTES que no aparecen en este PDF', faltan.length,
+    '<label style="text-align:left;display:block;margin-bottom:6px"><input type="checkbox" id="chkFaltan" style="width:auto;min-height:0"> Marcarlos como "SIN LIQUIDACIÓN RECIENTE"</label>' +
+    tabla(['Nombre', 'RUT'], faltan.map(function (v) { return '<tr><td>' + esc(v.nombre) + '</td><td>' + esc(v.rut) + '</td></tr>'; })));
+  $('previaLiq').innerHTML = h;
+  $('accionesLiq').style.display = 'flex';
+}
+
+function marcados(grupo) {
+  return Array.prototype.filter.call(document.querySelectorAll('.chk-' + grupo), function (c) { return c.checked; })
+    .map(function (c) { return Number(c.dataset.i); });
+}
+$('btnCancelarLiq').addEventListener('click', function () {
+  previa = null; $('previaLiq').innerHTML = ''; $('accionesLiq').style.display = 'none'; $('estadoLiq').textContent = ''; $('pdfLiq').value = '';
+});
+$('btnAplicarLiq').addEventListener('click', function () {
+  if (!previa) return;
+  var cambios = {};
+  function c(run) { return cambios[run] = cambios[run] || { run: run }; }
+  marcados('afp').forEach(function (i) { var x = previa.cambiosAfp[i]; c(x.run).afp = x.ahora; });
+  marcados('salud').forEach(function (i) { var x = previa.cambiosSalud[i]; c(x.run).salud = x.ahora; c(x.run).entidad = x.entAhora; });
+  marcados('vuelve').forEach(function (i) { c(previa.vuelven[i].run).situacion = 'VIGENTE'; });
+  marcados('desv').forEach(function (i) { c(previa.desvinc[i].run).situacion = 'VIGENTE'; });
+  var payload = {
+    anio: previa.anio, mes: previa.mes,
+    imponibles: previa.nuevosImp.map(function (l) { return { run: l.run, dv: l.dv, nombre: l.nombre, imponible: l.imponible, dias: l.dias }; }),
+    cambios: Object.keys(cambios).map(function (k) { return cambios[k]; }),
+    nuevos: marcados('nuevo').map(function (i) { return previa.nuevosFunc[i]; }),
+    enLiquidacion: previa.lista.map(function (l) { return l.run; }),
+    sinLiquidacion: ($('chkFaltan') && $('chkFaltan').checked) ? previa.faltan.map(function (f) { return f.run; }) : []
+  };
+  $('btnAplicarLiq').disabled = true; $('estadoAplicar').textContent = 'Guardando en la planilla…';
+  servidor.run.withSuccessHandler(function (r) {
+    $('btnAplicarLiq').disabled = false; $('estadoAplicar').textContent = '';
+    aviso($('resultadoLiq'), 'verde', '✔ Liquidaciones ' + esc(r.etiqueta) + ' cargadas: ' + r.imponibles + ' imponibles agregados' +
+      (r.yaEstaban ? ' (' + r.yaEstaban + ' ya estaban)' : '') + ', ' + r.cambios + ' funcionarios actualizados, ' + r.nuevos + ' funcionarios nuevos' +
+      (r.sinLiquidacion ? ', ' + r.sinLiquidacion + ' marcados sin liquidación reciente' : '') + '.');
+    previa = null; $('previaLiq').innerHTML = ''; $('accionesLiq').style.display = 'none'; $('pdfLiq').value = '';
+    cacheHojas = {};
+    cargarDatos(true);
+  }).withFailureHandler(function (e) {
+    $('btnAplicarLiq').disabled = false; $('estadoAplicar').textContent = '';
+    aviso($('resultadoLiq'), 'rojo', esc(e.message || e));
+  }).aplicarLiquidaciones(payload);
+});
+
 // ------------------------------------------------------------------ inicio
-mostrarVista(VISTA_INICIAL === 'buscar' ? 'buscar' : 'ingreso');
+mostrarVista(['buscar', 'hojas', 'liq'].indexOf(VISTA_INICIAL) >= 0 ? VISTA_INICIAL : 'ingreso');
 actualizarBoton();
 cargarDatos();
 </script>
