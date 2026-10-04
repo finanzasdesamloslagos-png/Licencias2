@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licencias Médicas — Depto. de Salud Los Lagos</title>
+<style>
+  :root {
+    --azul: #1F3864; --azul2: #2E75B6; --amarillo: #FFF2CC; --gris: #F2F2F2; --borde: #BFBFBF;
+    --texto: #262626; --suave: #737373; --rojo: #C00000; --rojoFondo: #FBE3E3; --verde: #1E7B34; --verdeFondo: #E2F0D9;
+    --naranja: #B45309; --naranjaFondo: #FFF4D6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: var(--texto); background: #fff; }
+  header { display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; background: #fff; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0; color: var(--azul); }
+  header .sub { color: var(--suave); font-size: 11px; }
+  .tab { border: 1px solid var(--borde); background: #fff; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; color: var(--azul); }
+  .tab.activa { background: var(--azul); color: #fff; border-color: var(--azul); }
+  main { padding: 14px 18px 24px; }
+  .vista { display: none; }
+  .vista.activa { display: block; }
+  .seccion { background: var(--azul); color: #fff; font-weight: bold; padding: 6px 10px; border-radius: 4px; margin: 14px 0 8px; font-size: 12px; letter-spacing: .3px; }
+  .seccion:first-child { margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 170px 1fr 170px 1fr; gap: 6px 10px; align-items: center; }
+  label { text-align: right; font-weight: bold; color: #404040; font-size: 12px; }
+  input, select { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 4px; background: var(--amarillo); font-weight: bold; min-height: 31px; }
+  input:focus, select:focus { outline: 2px solid var(--azul2); outline-offset: 0; }
+  input.error { border-color: var(--rojo); background: var(--rojoFondo); }
+  .dato { padding: 6px 8px; border: 1px solid var(--borde); border-radius: 4px; background: var(--gris); min-height: 31px; display: flex; align-items: center; }
+  .ancho { grid-column: 2 / 5; }
+  .ayuda { font-size: 11px; color: var(--suave); font-style: italic; }
+  .fila-dias { display: flex; gap: 8px; align-items: center; }
+  .fila-dias input { width: 90px; flex: none; }
+  .aviso { margin-top: 6px; padding: 8px 10px; border-radius: 4px; font-size: 12px; display: none; }
+  .aviso.ver { display: block; }
+  .aviso.rojo { background: var(--rojoFondo); color: var(--rojo); border: 1px solid #F1B5B5; }
+  .aviso.verde { background: var(--verdeFondo); color: var(--verde); border: 1px solid #B9DBA9; }
+  .aviso.naranja { background: var(--naranjaFondo); color: var(--naranja); border: 1px solid #F3D48A; }
+  .calc { display: grid; grid-template-columns: 220px 1fr 200px 1fr; gap: 6px 10px; align-items: center; }
+  .calc .dato { justify-content: flex-start; font-variant-numeric: tabular-nums; }
+  .calc input { width: 100%; }
+  .destacado { font-weight: bold; }
+  .acciones { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
+  button { font: inherit; font-weight: bold; padding: 9px 22px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+  button.primario { background: var(--azul); border-color: var(--azul); color: #fff; }
+  button.primario:disabled { background: #9AA7BD; border-color: #9AA7BD; cursor: not-allowed; }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  .alertas { margin-top: 10px; }
+  .alertas div { padding: 6px 10px; border-left: 4px solid var(--rojo); background: var(--rojoFondo); color: var(--rojo); margin-bottom: 4px; border-radius: 3px; font-size: 12px; }
+  .sit-sobre { background: #FFE699 !important; font-weight: bold; }
+  .sit-supera { background: #F8CBAD !important; color: var(--rojo); font-weight: bold; }
+  .cargando { color: var(--suave); font-style: italic; }
+  /* Buscar */
+  .barra { display: flex; gap: 8px; align-items: center; max-width: 720px; }
+  .barra input { font-size: 14px; }
+  .resumen { margin: 12px 0 8px; font-weight: bold; color: #404040; }
+  .tabla-cont { overflow: auto; max-height: 560px; border: 1px solid #e0e0e0; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th { background: var(--azul); color: #fff; padding: 7px 8px; position: sticky; top: 0; text-align: left; white-space: nowrap; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e6e6e6; white-space: nowrap; }
+  td.obs { white-space: normal; min-width: 180px; }
+  tbody tr:nth-child(even) td { background: #F7F7F7; }
+  tbody tr:first-child td { font-weight: bold; }
+  td.c { text-align: center; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .datos { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--suave); margin-left: auto; }
+  .datos button { padding: 4px 10px; font-size: 11px; }
+  .tabs { margin-left: 8px; display: flex; gap: 4px; }
+  @media (max-width: 760px) {
+    .grid, .calc { grid-template-columns: 1fr; }
+    label { text-align: left; }
+    .ancho, .grid > *, .calc > * { grid-column: auto !important; }
+    .fila-dias { flex-wrap: wrap; }
+    .barra { flex-wrap: wrap; }
+    header { flex-wrap: wrap; }
+    .tabs, .datos { margin-left: 0; }
+  }
+
+  .usuario { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--suave); margin-left: 12px; }
+  .usuario button { padding: 4px 10px; font-size: 11px; }
+  #login { position: fixed; inset: 0; background: rgba(31,56,100,.96); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  #login.ver { display: flex; }
+  .login-caja { background: #fff; border-radius: 10px; padding: 28px 30px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+  .login-caja h2 { margin: 0 0 4px; color: var(--azul); font-size: 18px; }
+  .login-caja p { color: var(--suave); margin: 0 0 18px; font-size: 12px; line-height: 1.5; }
+  .login-caja input { margin-bottom: 10px; background: #fff; font-weight: normal; font-size: 14px; padding: 9px 10px; }
+  .login-caja button { width: 100%; padding: 11px; font-size: 14px; }
+  #loginMsg { margin-top: 14px; color: var(--rojo); font-size: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+<div id="login">
+  <form class="login-caja" id="formLogin" autocomplete="on">
+    <h2>Licencias Médicas</h2>
+    <p>Departamento de Salud · I. Municipalidad de Los Lagos</p>
+    <input id="lCorreo" type="email" placeholder="Correo" autocomplete="username" required>
+    <input id="lClave" type="password" placeholder="Clave" autocomplete="current-password" required>
+    <button class="primario" id="btnIngresar" type="submit">INGRESAR</button>
+    <div id="loginMsg"></div>
+  </form>
+</div>
+<header>
+  <div>
+    <h1>Licencias Médicas</h1>
+    <div class="sub">Departamento de Salud · I. Municipalidad de Los Lagos</div>
+  </div>
+  <div class="datos"><span id="estadoDatos" class="cargando">Cargando datos…</span>
+    <button id="btnActualizar" title="Volver a leer la planilla (por si otro colega agregó licencias)">↻ Actualizar</button></div>
+  <div class="tabs">
+    <button class="tab" data-vista="ingreso">Ingresar</button>
+    <button class="tab" data-vista="buscar">Buscar</button>
+  </div>
+  <div class="usuario" id="usuario" style="display:none"><span id="usuarioEmail"></span><button id="btnSalir">Salir</button></div>
+</header>
+
+<main>
+  <div id="cargandoInicial" class="aviso naranja ver" style="display:none">Cargando los datos de la planilla… (solo esta vez, unos segundos). Después todo es instantáneo.</div>
+  <!-- ======================= INGRESO ======================= -->
+  <section id="v-ingreso" class="vista">
+    <div class="seccion">1. FUNCIONARIO</div>
+    <div class="grid">
+      <label for="rut">RUT</label>
+      <input id="rut" placeholder="12.345.678-9" autocomplete="off">
+      <label>Situación</label><div class="dato" id="situacion"></div>
+      <label>Nombre</label><div class="dato ancho destacado" id="nombre"></div>
+      <label>Cargo</label><div class="dato" id="cargo"></div>
+      <label>Calidad jurídica</label><div class="dato" id="calidad"></div>
+      <label>Entidad (Isapre / CCAF)</label><div class="dato" id="entidad"></div>
+      <label>Previsión de salud</label><div class="dato" id="prevision"></div>
+    </div>
+    <div id="avisoRut" class="aviso"></div>
+
+    <div class="seccion">2. DATOS DE LA LICENCIA</div>
+    <div class="grid">
+      <label for="folio">Folio</label><input id="folio" autocomplete="off">
+      <label for="emision">Fecha de emisión</label><input id="emision" type="date">
+      <label for="desde">Desde</label><input id="desde" type="date">
+      <label for="hasta">Hasta</label><input id="hasta" type="date">
+      <label for="dias">Cantidad de días</label>
+      <div class="fila-dias"><input id="dias" type="number" min="1" max="730" step="1">
+        <span class="ayuda">Escribe los días y HASTA se calcula solo</span></div>
+      <label></label><div></div>
+      <label for="tipo">Tipo de licencia</label><select id="tipo"></select>
+      <label for="reposo">Reposo</label><select id="reposo"></select>
+      <label for="estado">Estado</label><select id="estado"></select>
+      <label for="estadoPago">Estado de pago</label><select id="estadoPago"></select>
+      <label for="montoPagado">Monto pagado</label><input id="montoPagado" type="number" min="0" step="1">
+      <label for="descontar">Descontar</label><input id="descontar">
+      <label for="observaciones">Observaciones</label><input id="observaciones" class="ancho">
+      <label for="entidadDistinta">Entidad distinta (opcional)</label>
+      <select id="entidadDistinta"></select>
+      <div class="ayuda" style="grid-column: 3 / 5;">Solo si la licencia va a otra Isapre/CCAF</div>
+    </div>
+    <div id="avisoFolio" class="aviso rojo"></div>
+
+    <div class="seccion">3. CÁLCULO AUTOMÁTICO</div>
+    <div class="calc">
+      <label>Cantidad de días</label><div class="dato" id="cDias"></div>
+      <label>Días de carencia</label><div class="dato" id="cCarencia"></div>
+      <label>Días a pagar</label><div class="dato" id="cPagar"></div>
+      <label>Pre y post natal</label><div class="dato" id="cPrePost"></div>
+      <label id="lImp0">Imponible mes -3</label><div class="dato" id="cImp0"></div>
+      <label for="imp0">Si falta, escribir aquí</label><input id="imp0" type="number" min="0" step="1">
+      <label id="lImp1">Imponible mes -2</label><div class="dato" id="cImp1"></div>
+      <label for="imp1">Si falta, escribir aquí</label><input id="imp1" type="number" min="0" step="1">
+      <label id="lImp2">Imponible mes -1</label><div class="dato" id="cImp2"></div>
+      <label for="imp2">Si falta, escribir aquí</label><input id="imp2" type="number" min="0" step="1">
+      <label>Promedio imponible</label><div class="dato" id="cProm"></div>
+      <label>Valor día</label><div class="dato" id="cValorDia"></div>
+      <label>Valor total estimado subsidio</label><div class="dato destacado" id="cSubsidio"></div>
+      <label>Costo de carencia</label><div class="dato" id="cCostoCar"></div>
+      <label>Días de licencia en 2 años (con esta)</label><div class="dato" id="c150"></div>
+      <label>Situación 150/180</label><div class="dato" id="cSit150"></div>
+    </div>
+    <div class="alertas" id="alertas"></div>
+
+    <div id="confirmar" class="aviso naranja"></div>
+    <div class="acciones">
+      <button class="primario" id="btnGuardar">GUARDAR</button>
+      <button id="btnLimpiar">LIMPIAR</button>
+      <span id="estadoGuardar" class="cargando"></span>
+    </div>
+    <div id="resultado" class="aviso"></div>
+  </section>
+
+  <!-- ======================= BUSCAR ======================= -->
+  <section id="v-buscar" class="vista">
+    <div class="barra">
+      <input id="qBuscar" placeholder="RUT (14.282.373-K, 14282373) o nombre (paola cuevas)" autocomplete="off">
+      <button class="primario" id="btnBuscar">BUSCAR</button>
+    </div>
+    <div class="resumen" id="resumen">Escribe un RUT o parte del nombre: los resultados aparecen mientras escribes.</div>
+    <div class="tabla-cont" id="tablaCont" style="display:none">
+      <table>
+        <thead><tr>
+          <th>Nombre</th><th>RUT</th><th>Folio</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Tipo</th>
+          <th>Entidad</th><th>Estado</th><th>Estado de pago</th><th>Monto pagado</th><th>Observaciones</th><th>Fila</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+// ===================== CONFIGURACIÓN (cambia solo esta línea) =====================
+var API_URL = 'https://script.google.com/macros/s/AKfycbzNtC-hBzL6fkeLab5pXVTuJfZ2Wg-3VPOjcIZyUtaYR0dUAzOqchVJX_Vg2itESU2-kg/exec';
+// ====================================================================================
+
+var VISTA_INICIAL = location.hash === '#buscar' ? 'buscar' : 'ingreso';
+var sesion = leerSesion(), cola = [];
+var configOk = API_URL.indexOf('PEGA_AQUI') < 0;
+
+function leerSesion() {
+  try { var x = JSON.parse(sessionStorage.getItem('lic_sesion') || 'null');
+        if (x && x.exp * 1000 > Date.now() + 60000) return x; } catch (e) {}
+  return null;
+}
+function guardarSesion(x) { sesion = x; try { sessionStorage.setItem('lic_sesion', JSON.stringify(x)); } catch (e) {} }
+function borrarSesion() { sesion = null; try { sessionStorage.removeItem('lic_sesion'); } catch (e) {} }
+
+function postApi(cuerpo) {
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(cuerpo) })
+    .then(function (r) { return r.json(); });
+}
+function llamarApi(fn, args, ok, err) {
+  if (!sesion) { cola.push([fn, args, ok, err]); pedirLogin(); return; }
+  postApi({ fn: fn, args: args, token: sesion.token })
+    .then(function (res) {
+      if (res.ok) { if (ok) ok(res.data); }
+      else if (res.auth) { borrarSesion(); cola.push([fn, args, ok, err]); pedirLogin(res.error); }
+      else if (err) err(new Error(res.error));
+    })
+    .catch(function (e) {
+      if (err) err(new Error('No se pudo conectar con la planilla. Revisa tu internet o la URL de la API (' + e.message + ').'));
+    });
+}
+
+// Mismo estilo que servidor.run:  servidor.run.withSuccessHandler(f).withFailureHandler(g).funcion(args)
+var servidor = { get run() {
+  var h = { ok: null, err: null }, p;
+  p = new Proxy({}, { get: function (t, k) {
+    if (k === 'withSuccessHandler') return function (f) { h.ok = f; return p; };
+    if (k === 'withFailureHandler') return function (f) { h.err = f; return p; };
+    return function () { llamarApi(k, Array.prototype.slice.call(arguments), h.ok, h.err); };
+  } });
+  return p;
+} };
+
+function pedirLogin(msg) {
+  document.getElementById('login').classList.add('ver');
+  var m = document.getElementById('loginMsg');
+  if (!configOk) { m.textContent = 'Falta pegar la URL de la API (API_URL) dentro de index.html.'; return; }
+  m.textContent = msg || '';
+  setTimeout(function () { document.getElementById(document.getElementById('lCorreo').value ? 'lClave' : 'lCorreo').focus(); }, 50);
+}
+document.getElementById('formLogin').addEventListener('submit', function (e) {
+  e.preventDefault();
+  if (!configOk) return;
+  var b = document.getElementById('btnIngresar'), m = document.getElementById('loginMsg');
+  b.disabled = true; b.textContent = 'Ingresando…'; m.textContent = '';
+  postApi({ fn: 'ingresar', args: [document.getElementById('lCorreo').value, document.getElementById('lClave').value] })
+    .then(function (res) {
+      b.disabled = false; b.textContent = 'INGRESAR';
+      if (!res.ok) { m.textContent = res.error; return; }
+      guardarSesion(res.data);
+      document.getElementById('lClave').value = '';
+      document.getElementById('login').classList.remove('ver');
+      pintarUsuario();
+      var c = cola; cola = [];
+      c.forEach(function (x) { llamarApi.apply(null, x); });
+    })
+    .catch(function (e2) {
+      b.disabled = false; b.textContent = 'INGRESAR';
+      m.textContent = 'No se pudo conectar con la planilla (' + e2.message + ').';
+    });
+});
+function pintarUsuario() {
+  var u = document.getElementById('usuario');
+  u.style.display = sesion ? 'flex' : 'none';
+  document.getElementById('usuarioEmail').textContent = sesion ? (sesion.nombre || sesion.email) : '';
+}
+document.getElementById('btnSalir').addEventListener('click', function () {
+  borrarSesion(); location.hash = ''; location.reload();
+});
+pintarUsuario();
+var cfg = null, DB = null, func = null, folioDup = null, ultimo = null, confirmado = false, cargando = false;
+var MESES_MIN = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+// columnas de DB.lic
+var L_FILA = 0, L_RUN = 1, L_DV = 2, L_NOM = 3, L_DESDE = 4, L_HASTA = 5, L_FOLIO = 6, L_TIPO = 7, L_ENT = 8, L_EST = 9,
+    L_PAGO = 10, L_MONTO = 11, L_DIAS = 12, L_OBS = 13, L_TERM = 14, L_CUENTA = 15;
+
+function $(id) { return document.getElementById(id); }
+function fmt(n) { return (n === '' || n === null || n === undefined || isNaN(n)) ? '' : Math.round(n).toLocaleString('es-CL'); }
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function txt(v) { return v === null || v === undefined ? '' : String(v).trim(); }
+
+// --- fechas como días UTC (sin problemas de zona horaria)
+function isoADia(iso) { if (!iso) return null; var p = iso.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; }
+function diaAIso(n) { return new Date(n * 86400000).toISOString().slice(0, 10); }
+function isoADmy(iso) { return iso ? iso.slice(8, 10) + '-' + iso.slice(5, 7) + '-' + iso.slice(0, 4) : ''; }
+function edate(dia, meses) {
+  var d = new Date(dia * 86400000), y = d.getUTCFullYear(), m = d.getUTCMonth() + meses, dd = d.getUTCDate();
+  var ult = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return Date.UTC(y, m, Math.min(dd, ult)) / 86400000;
+}
+function mesClave(iso, atras) {
+  var p = iso.split('-'); var d = new Date(Date.UTC(+p[0], +p[1] - 1 - atras, 1));
+  return { clave: d.toISOString().slice(0, 7), texto: MESES_MIN[d.getUTCMonth()] + ' ' + d.getUTCFullYear() };
+}
+
+// --- RUT, folio, nombres (igual que la planilla)
+function leerRut(texto) {
+  var s = txt(texto).toUpperCase().replace(/[.\s]/g, '');
+  if (!s) return null;
+  var p = s.indexOf('-'), cuerpo = p >= 0 ? s.slice(0, p) : s, tieneK = false;
+  if (p < 0 && cuerpo.length > 1 && cuerpo.slice(-1) === 'K') { cuerpo = cuerpo.slice(0, -1); tieneK = true; }
+  if (!/^\d{1,9}$/.test(cuerpo)) return null;
+  var r = { run: Number(cuerpo), runAlt: 0 };
+  if (p < 0 && !tieneK && cuerpo.length > 1) r.runAlt = Number(cuerpo.slice(0, -1));
+  return r;
+}
+function formatearRut(run, dv) {
+  var s = txt(run);
+  if (/^\d+$/.test(s)) s = s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return txt(dv) ? s + '-' + txt(dv) : s;
+}
+function normalizarFolio(v) { return txt(v).toUpperCase().replace(/[\s .\-]/g, ''); }
+function sinTildes(s) { return txt(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+
+function aviso(el, tipo, html) {
+  el.className = 'aviso ' + (tipo || '') + (html ? ' ver' : '');
+  el.innerHTML = html || '';
+}
+
+// ------------------------------------------------------------------ vistas
+function mostrarVista(v) {
+  document.querySelectorAll('.vista').forEach(function (s) { s.classList.toggle('activa', s.id === 'v-' + v); });
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('activa', t.dataset.vista === v); });
+  setTimeout(function () { (v === 'buscar' ? $('qBuscar') : $('rut')).focus(); }, 50);
+}
+document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { mostrarVista(t.dataset.vista); }); });
+
+function llenarSelect(sel, opciones, vacio, defecto) {
+  var actual = sel.value;
+  sel.innerHTML = (vacio !== null ? '<option value="">' + esc(vacio) + '</option>' : '') +
+    opciones.map(function (o) { var v = typeof o === 'object' ? o.v : o, t = typeof o === 'object' ? o.t : o;
+      return '<option value="' + esc(v) + '"' + (v === defecto ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('');
+  if (actual && Array.prototype.some.call(sel.options, function (o) { return o.value === actual; })) sel.value = actual;
+}
+
+// ------------------------------------------------------------------ carga única de datos
+function cargarDatos(manual) {
+  if (cargando) return;
+  cargando = true;
+  $('estadoDatos').textContent = 'Cargando datos…';
+  if (!DB) $('cargandoInicial').style.display = 'block';
+  servidor.run.withSuccessHandler(function (d) {
+    cargando = false;
+    var primera = !DB;
+    DB = d; cfg = d.cfg;
+    DB.funcPorRun = {};
+    d.func.forEach(function (f) { DB.funcPorRun[f[0]] = f; });
+    DB.cargadoMs = Date.now();
+    $('cargandoInicial').style.display = 'none';
+    $('estadoDatos').textContent = d.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + d.cargado;
+    llenarSelect($('tipo'), cfg.tipos.map(function (t) { return { v: t.cod, t: t.cod + ' - ' + t.desc }; }), '— elegir —');
+    llenarSelect($('reposo'), cfg.reposos, null, 'TOTAL');
+    llenarSelect($('estado'), cfg.estados.map(function (e) { return e.estado; }), '— elegir —', primera ? 'PENDIENTE' : undefined);
+    llenarSelect($('estadoPago'), cfg.pagos, '');
+    llenarSelect($('entidadDistinta'), cfg.entidades, '(la de FUNCIONARIOS)');
+    if ($('rut').value.trim()) { rutVisto = ''; cargarFuncionario(); }
+    if ($('folio').value.trim()) revisarFolio();
+    if ($('qBuscar').value.trim()) buscar();
+    recalcular();
+  }).withFailureHandler(function (e) {
+    cargando = false;
+    $('cargandoInicial').style.display = 'none';
+    $('estadoDatos').textContent = 'No se pudieron cargar los datos';
+    aviso($('resultado'), 'rojo', esc(e && e.message ? e.message : e));
+  }).cargarTodo();
+}
+$('btnActualizar').addEventListener('click', function () { cargarDatos(true); });
+// si la página estuvo abierta mucho rato, actualizar al volver a ella
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && DB && Date.now() - DB.cargadoMs > 10 * 60000) cargarDatos();
+});
+
+// ------------------------------------------------------------------ funcionario (local, instantáneo)
+var rutVisto = '';
+function buscarFuncionarioLocal(texto) {
+  var r = leerRut(texto);
+  if (!r) return { ok: false, msg: 'RUT no válido.' };
+  var f = DB.funcPorRun[r.run] || (r.runAlt ? DB.funcPorRun[r.runAlt] : null);
+  if (!f) return { ok: false, msg: 'El RUT no está en la hoja FUNCIONARIOS. Agrégalo primero.' };
+  var run = f[0];
+  return {
+    ok: true, run: run, dv: f[1], rut: formatearRut(run, f[1]), nombre: f[2], cargo: f[3], calidad: f[4],
+    prevision: f[5], entidad: f[6], afp: f[7], situacion: f[8], imponibles: DB.imp[run] || {},
+    previas: DB.lic.filter(function (x) { return x[L_RUN] === run; })
+  };
+}
+function cargarFuncionario() {
+  var t = $('rut').value.trim();
+  if (t === rutVisto) return;
+  rutVisto = t;
+  func = null;
+  $('rut').classList.remove('error');
+  if (!t || !DB) { aviso($('avisoRut'), '', ''); pintarFuncionario(); recalcular(); return; }
+  var r = buscarFuncionarioLocal(t);
+  if (!r.ok) { aviso($('avisoRut'), 'rojo', esc(r.msg)); $('rut').classList.add('error'); pintarFuncionario(); recalcular(); return; }
+  func = r; $('rut').value = r.rut; rutVisto = r.rut;
+  aviso($('avisoRut'), r.situacion === 'DESVINCULADO' ? 'naranja' : '', r.situacion === 'DESVINCULADO' ? 'Funcionario desvinculado.' : '');
+  pintarFuncionario(); recalcular();
+}
+function pintarFuncionario() {
+  var f = func || {};
+  ['nombre', 'cargo', 'calidad', 'prevision', 'situacion'].forEach(function (k) { $(k).textContent = f[k] || ''; });
+  $('entidad').textContent = $('entidadDistinta').value || f.entidad || '';
+}
+$('rut').addEventListener('change', cargarFuncionario);
+$('rut').addEventListener('keydown', function (e) { if (e.key === 'Enter') { cargarFuncionario(); if (func) $('folio').focus(); } });
+
+// ------------------------------------------------------------------ folio (local, instantáneo)
+function folioLocal(f) {
+  var n = normalizarFolio(f);
+  if (!n) return null;
+  for (var i = 0; i < DB.lic.length; i++) if (normalizarFolio(DB.lic[i][L_FOLIO]) === n) return DB.lic[i];
+  return null;
+}
+function revisarFolio() {
+  var f = $('folio').value.trim();
+  folioDup = null;
+  $('folio').classList.remove('error'); aviso($('avisoFolio'), 'rojo', '');
+  if (f && DB) {
+    var x = folioLocal(f);
+    if (x) {
+      folioDup = x;
+      $('folio').classList.add('error');
+      aviso($('avisoFolio'), 'rojo', '<b>Folio repetido:</b> el folio ' + esc(f) + ' ya está registrado en el Consolidado (fila ' + x[L_FILA] +
+        ': ' + esc(x[L_NOM]) + ', desde ' + isoADmy(x[L_DESDE]) + ' hasta ' + isoADmy(x[L_HASTA]) + '). No se puede guardar.');
+    }
+  }
+  actualizarBoton();
+}
+$('folio').addEventListener('input', revisarFolio);
+function actualizarBoton() { $('btnGuardar').disabled = !!folioDup || !DB; }
+
+// ------------------------------------------------------------------ fechas / días
+$('desde').addEventListener('change', function () {
+  var n = parseInt($('dias').value, 10);
+  if ($('desde').value && n >= 1) $('hasta').value = diaAIso(isoADia($('desde').value) + n - 1);
+  else if ($('desde').value && $('hasta').value) sincDias();
+  recalcular();
+});
+$('dias').addEventListener('input', function () {
+  var n = parseInt($('dias').value, 10);
+  if ($('desde').value && n >= 1 && n <= 730) $('hasta').value = diaAIso(isoADia($('desde').value) + n - 1);
+  recalcular();
+});
+$('hasta').addEventListener('change', function () { sincDias(); recalcular(); });
+function sincDias() {
+  var a = isoADia($('desde').value), b = isoADia($('hasta').value);
+  if (a !== null && b !== null && b >= a) $('dias').value = b - a + 1;
+  else if (!$('hasta').value) $('dias').value = '';
+}
+['tipo', 'estado', 'imp0', 'imp1', 'imp2'].forEach(function (id) { $(id).addEventListener('input', recalcular); $(id).addEventListener('change', recalcular); });
+$('entidadDistinta').addEventListener('change', pintarFuncionario);
+
+// ------------------------------------------------------------------ cálculo (igual que la planilla)
+function recalcular() {
+  confirmado = false; aviso($('confirmar'), 'naranja', '');
+  var desde = $('desde').value, hasta = $('hasta').value;
+  var tipo = Number($('tipo').value || 0);
+  var dDesde = isoADia(desde), dHasta = isoADia(hasta);
+  var dias = (dDesde !== null && dHasta !== null) ? dHasta - dDesde + 1 : '';
+  var carencia = dias === '' ? '' : ((tipo === 3 || tipo === 5 || tipo === 6) ? 0 : (dias > 10 ? 0 : Math.min(dias, 3)));
+  var pagar = dias === '' ? '' : dias - carencia;
+  $('cDias').textContent = dias; $('cCarencia').textContent = carencia; $('cPagar').textContent = pagar;
+  $('cPrePost').textContent = (dias !== '' && tipo === 3) ? dias : '';
+
+  var suma = 0, faltan = 0;
+  for (var i = 0; i < 3; i++) {
+    var lab = $('lImp' + i), out = $('cImp' + i), man = $('imp' + i).value;
+    if (!desde) { lab.textContent = 'Imponible mes -' + (3 - i); out.textContent = ''; continue; }
+    var m = mesClave(desde, 3 - i);
+    lab.textContent = 'Imponible ' + m.texto;
+    var auto = func ? func.imponibles[m.clave] : undefined;
+    out.textContent = !func ? '' : (auto === undefined ? 'SIN DATO' : fmt(auto));
+    if (man !== '') suma += Number(man); else if (auto !== undefined) suma += auto; else if (func) faltan++;
+  }
+  var prom = desde ? suma / 3 : '';
+  var valorDia = prom === '' ? '' : prom / 30;
+  $('cProm').textContent = fmt(prom); $('cValorDia').textContent = fmt(valorDia);
+  $('cSubsidio').textContent = (valorDia === '' || dias === '') ? '' : fmt(valorDia * pagar + valorDia * dias * 0.21);
+  var est = cfg ? cfg.estados.filter(function (e) { return e.estado === $('estado').value.trim(); })[0] : null;
+  $('cCostoCar').textContent = (valorDia === '' || carencia === '') ? '' : fmt(est && est.carencia === 'NO' ? 0 : carencia * valorDia);
+
+  var total = '', sit = '';
+  $('cSit150').className = 'dato';
+  if (func && dias !== '' && cfg) {
+    var fin = dDesde + dias - 1, ini = edate(fin, -24) + 1;
+    total = 0;
+    func.previas.forEach(function (p) {
+      var a = isoADia(p[L_DESDE]), b = isoADia(p[L_TERM]);
+      if (a === null || b === null || !p[L_CUENTA]) return;
+      total += Math.max(0, Math.min(b, fin) - Math.max(a, ini) + 1) * p[L_CUENTA];
+    });
+    if (!excluida(tipo, dias)) total += dias;
+    if (total >= cfg.umbralMax) { sit = 'SUPERA ' + cfg.umbralMax + ' DÍAS'; $('cSit150').classList.add('sit-supera'); }
+    else if (total >= cfg.umbralAlerta) { sit = 'SOBRE ' + cfg.umbralAlerta + ' DÍAS'; $('cSit150').classList.add('sit-sobre'); }
+    else sit = 'Bajo ' + cfg.umbralAlerta + ' días';
+  }
+  $('c150').textContent = total; $('cSit150').textContent = sit;
+
+  var al = [];
+  if (desde && hasta && dHasta < dDesde) al.push('HASTA es anterior a DESDE.');
+  if (func && desde && faltan > 0) al.push('Falta imponible: escríbelo a mano en "Si falta, escribir aquí".');
+  $('alertas').innerHTML = al.map(function (a) { return '<div>' + esc(a) + '</div>'; }).join('');
+}
+function excluida(tipo) {
+  var t = cfg.tipos.filter(function (x) { return Number(x.cod) === Number(tipo); })[0];
+  return (t && t.excluye === 'SI') || Number(tipo) === 3;
+}
+/** Igual que la columna "CUENTA 150/180" del Consolidado */
+function cuentaPara150(tipo, estado) {
+  if (excluida(tipo)) return 0;
+  var e = cfg.estados.filter(function (x) { return x.estado === txt(estado); })[0];
+  return e && e.cuenta === 'NO' ? 0 : 1;
+}
+
+// ------------------------------------------------------------------ guardar
+function validar() {
+  if (!DB) return 'Espera a que terminen de cargar los datos.';
+  if (!func) return 'Escribe un RUT válido que esté en FUNCIONARIOS.';
+  if (!$('folio').value.trim()) return 'Falta el folio de la licencia.';
+  if (folioDup) return 'El folio ya existe en el Consolidado. No se puede guardar.';
+  if (!$('desde').value || !$('hasta').value) return 'Revisa las fechas DESDE y HASTA (o la cantidad de días).';
+  if (isoADia($('hasta').value) < isoADia($('desde').value)) return 'La fecha HASTA es anterior a DESDE.';
+  if (!$('tipo').value) return 'Falta el tipo de licencia (1 a 7).';
+  if (!$('estado').value) return 'Falta el estado de la licencia.';
+  return '';
+}
+$('btnGuardar').addEventListener('click', function () {
+  aviso($('resultado'), '', '');
+  var err = validar();
+  if (err) { aviso($('resultado'), 'rojo', esc(err)); return; }
+  if (func.situacion === 'DESVINCULADO' && !confirmado) {
+    aviso($('confirmar'), 'naranja', 'El funcionario figura como <b>DESVINCULADO</b>. Si igual quieres guardarla, presiona GUARDAR otra vez.');
+    confirmado = true; return;
+  }
+  var d = {
+    rut: $('rut').value, folio: $('folio').value.trim(), emision: $('emision').value, desde: $('desde').value, hasta: $('hasta').value,
+    tipo: $('tipo').value, reposo: $('reposo').value, estado: $('estado').value, estadoPago: $('estadoPago').value,
+    montoPagado: $('montoPagado').value, descontar: $('descontar').value, observaciones: $('observaciones').value,
+    entidadDistinta: $('entidadDistinta').value, impManual: [$('imp0').value, $('imp1').value, $('imp2').value]
+  };
+  $('btnGuardar').disabled = true; $('estadoGuardar').textContent = 'Guardando…';
+  servidor.run.withSuccessHandler(function (r) {
+    $('estadoGuardar').textContent = ''; ultimo = r;
+    var reg = r.registro;
+    reg[L_CUENTA] = cuentaPara150(reg[L_TIPO], reg[L_EST]);
+    DB.lic.push(reg);
+    $('estadoDatos').textContent = DB.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + DB.cargado;
+    aviso($('resultado'), 'verde', '✔ Licencia de <b>' + esc(r.nombre) + '</b> (folio ' + esc(r.folio) + ') guardada en la fila ' + r.fila +
+      ' del Consolidado. <button id="btnDeshacer" style="margin-left:10px;padding:4px 12px">Deshacer</button>');
+    $('btnDeshacer').addEventListener('click', deshacer);
+    limpiar(true);
+  }).withFailureHandler(function (e) {
+    $('estadoGuardar').textContent = ''; actualizarBoton();
+    aviso($('resultado'), 'rojo', esc(e.message || e));
+  }).guardarLicencia(d);
+});
+
+function deshacer() {
+  if (!ultimo) return;
+  var u = ultimo;
+  aviso($('resultado'), '', '<span class="cargando">Deshaciendo…</span>'); $('resultado').classList.add('ver');
+  servidor.run.withSuccessHandler(function () {
+    ultimo = null;
+    DB.lic = DB.lic.filter(function (x) { return x[L_FILA] !== u.fila; });
+    DB.lic.forEach(function (x) { if (x[L_FILA] > u.fila) x[L_FILA]--; });
+    $('estadoDatos').textContent = DB.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + DB.cargado;
+    aviso($('resultado'), 'naranja', 'Se borró la licencia folio ' + esc(u.folio) + ' (fila ' + u.fila + ') del Consolidado.');
+  }).withFailureHandler(function (e) { aviso($('resultado'), 'rojo', esc(e.message || e)); }).deshacerLicencia(u.fila, u.folio);
+}
+
+function limpiar(mantenerResultado) {
+  ['rut', 'folio', 'emision', 'desde', 'hasta', 'dias', 'montoPagado', 'descontar', 'observaciones', 'imp0', 'imp1', 'imp2']
+    .forEach(function (id) { $(id).value = ''; $(id).classList.remove('error'); });
+  $('tipo').value = ''; $('estadoPago').value = ''; $('entidadDistinta').value = '';
+  if (cfg) { $('reposo').value = 'TOTAL'; $('estado').value = 'PENDIENTE'; }
+  func = null; folioDup = null; rutVisto = '';
+  aviso($('avisoRut'), '', ''); aviso($('avisoFolio'), 'rojo', '');
+  if (!mantenerResultado) aviso($('resultado'), '', '');
+  pintarFuncionario(); actualizarBoton(); recalcular();
+  $('rut').focus();
+}
+$('btnLimpiar').addEventListener('click', function () { limpiar(false); });
+
+// ------------------------------------------------------------------ buscar (local, mientras escribes)
+function buscar() {
+  var q = $('qBuscar').value.trim();
+  if (!DB) { $('resumen').textContent = 'Cargando datos…'; return; }
+  if (!q) { $('resumen').textContent = 'Escribe un RUT o parte del nombre.'; $('tablaCont').style.display = 'none'; return; }
+  var lista = [], rut = leerRut(q);
+  if (rut) {
+    lista = DB.lic.filter(function (x) { return x[L_RUN] === rut.run; });
+    if (!lista.length && rut.runAlt) lista = DB.lic.filter(function (x) { return x[L_RUN] === rut.runAlt; });
+  } else {
+    var pal = sinTildes(q).split(/\s+/).filter(String);
+    lista = DB.lic.filter(function (x) { var n = sinTildes(x[L_NOM]); return n && pal.every(function (w) { return n.indexOf(w) >= 0; }); });
+  }
+  if (!lista.length) { $('resumen').textContent = 'No se encontraron licencias para "' + q + '".'; $('tablaCont').style.display = 'none'; return; }
+  lista.sort(function (a, b) { return a[L_DESDE] === b[L_DESDE] ? b[L_FILA] - a[L_FILA] : (a[L_DESDE] < b[L_DESDE] ? 1 : -1); });
+  var personas = {}, totalDias = 0, tipos = {};
+  cfg.tipos.forEach(function (t) { tipos[t.cod] = t.desc; });
+  lista.forEach(function (x) { personas[x[L_RUN]] = 1; if (typeof x[L_DIAS] === 'number') totalDias += x[L_DIAS]; });
+  var nP = Object.keys(personas).length, mostrar = lista.slice(0, 500);
+  $('resumen').textContent = nP === 1
+    ? lista[0][L_NOM] + '  ·  RUT ' + formatearRut(lista[0][L_RUN], lista[0][L_DV]) + '  ·  ' + lista.length +
+      (lista.length === 1 ? ' licencia' : ' licencias') + '  ·  ' + totalDias + ' días en total'
+    : lista.length + ' licencias de ' + nP + ' personas que coinciden con "' + q + '"' +
+      (lista.length > 500 ? ' (se muestran las 500 más recientes)' : '') + '. Escribe más del nombre o el RUT para ver solo una persona.';
+  $('tablaCont').style.display = 'block';
+  $('tbody').innerHTML = mostrar.map(function (x) {
+    var t = txt(x[L_TIPO]);
+    return '<tr><td>' + esc(x[L_NOM]) + '</td><td>' + esc(formatearRut(x[L_RUN], x[L_DV])) + '</td><td>' + esc(x[L_FOLIO]) +
+      '</td><td class="c">' + isoADmy(x[L_DESDE]) + '</td><td class="c">' + isoADmy(x[L_HASTA]) + '</td><td class="c">' + esc(x[L_DIAS]) +
+      '</td><td>' + esc(t ? (tipos[t] ? t + ' - ' + tipos[t] : t) : '') + '</td><td>' + esc(x[L_ENT]) + '</td><td>' + esc(x[L_EST]) +
+      '</td><td>' + esc(x[L_PAGO]) + '</td><td class="n">' + fmt(x[L_MONTO]) + '</td><td class="obs">' + esc(x[L_OBS]) +
+      '</td><td class="c">' + x[L_FILA] + '</td></tr>';
+  }).join('');
+}
+var tBuscar = null;
+$('qBuscar').addEventListener('input', function () { clearTimeout(tBuscar); tBuscar = setTimeout(buscar, 120); });
+$('qBuscar').addEventListener('keydown', function (e) { if (e.key === 'Enter') buscar(); });
+$('btnBuscar').addEventListener('click', buscar);
+
+// ------------------------------------------------------------------ inicio
+mostrarVista(VISTA_INICIAL === 'buscar' ? 'buscar' : 'ingreso');
+actualizarBoton();
+cargarDatos();
+</script>
+</body>
+</html>
