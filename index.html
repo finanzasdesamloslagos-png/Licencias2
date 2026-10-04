@@ -91,6 +91,11 @@
   .bloque-liq tbody tr:first-child td { font-weight: normal; }
   .antes { color: var(--suave); text-decoration: line-through; }
   .ahora { color: var(--verde); font-weight: bold; }
+  body.normal .sa { display: none !important; }
+  .btn-borrar { padding: 3px 10px; font-size: 11px; color: var(--rojo); border-color: #F1B5B5; }
+  #panelBorrar input { margin: 8px 0; background: #fff; font-weight: normal; }
+  #panelBorrar button { margin-right: 6px; }
+  .rol-admin { color: var(--azul); font-weight: bold; }
   @media (max-width: 760px) {
     .grid, .calc { grid-template-columns: 1fr; }
     label { text-align: left; }
@@ -135,7 +140,8 @@
     <button class="tab" data-vista="ingreso">Ingresar</button>
     <button class="tab" data-vista="buscar">Buscar</button>
     <button class="tab" data-vista="hojas">Hojas</button>
-    <button class="tab" data-vista="liq">Liquidaciones</button>
+    <button class="tab sa" data-vista="liq">Liquidaciones</button>
+    <button class="tab sa" data-vista="usuarios">Usuarios</button>
   </div>
   <div class="usuario" id="usuario" style="display:none"><span id="usuarioEmail"></span><button id="btnSalir">Salir</button></div>
 </header>
@@ -186,16 +192,16 @@
       <label>Días de carencia</label><div class="dato" id="cCarencia"></div>
       <label>Días a pagar</label><div class="dato" id="cPagar"></div>
       <label>Pre y post natal</label><div class="dato" id="cPrePost"></div>
-      <label id="lImp0">Imponible mes -3</label><div class="dato" id="cImp0"></div>
-      <label for="imp0">Si falta, escribir aquí</label><input id="imp0" type="number" min="0" step="1">
-      <label id="lImp1">Imponible mes -2</label><div class="dato" id="cImp1"></div>
-      <label for="imp1">Si falta, escribir aquí</label><input id="imp1" type="number" min="0" step="1">
-      <label id="lImp2">Imponible mes -1</label><div class="dato" id="cImp2"></div>
-      <label for="imp2">Si falta, escribir aquí</label><input id="imp2" type="number" min="0" step="1">
-      <label>Promedio imponible</label><div class="dato" id="cProm"></div>
-      <label>Valor día</label><div class="dato" id="cValorDia"></div>
-      <label>Valor total estimado subsidio</label><div class="dato destacado" id="cSubsidio"></div>
-      <label>Costo de carencia</label><div class="dato" id="cCostoCar"></div>
+      <label class="sa" id="lImp0">Imponible mes -3</label><div class="dato sa" id="cImp0"></div>
+      <label class="sa" for="imp0">Si falta, escribir aquí</label><input class="sa" id="imp0" type="number" min="0" step="1">
+      <label class="sa" id="lImp1">Imponible mes -2</label><div class="dato sa" id="cImp1"></div>
+      <label class="sa" for="imp1">Si falta, escribir aquí</label><input class="sa" id="imp1" type="number" min="0" step="1">
+      <label class="sa" id="lImp2">Imponible mes -1</label><div class="dato sa" id="cImp2"></div>
+      <label class="sa" for="imp2">Si falta, escribir aquí</label><input class="sa" id="imp2" type="number" min="0" step="1">
+      <label class="sa">Promedio imponible</label><div class="dato sa" id="cProm"></div>
+      <label class="sa">Valor día</label><div class="dato sa" id="cValorDia"></div>
+      <label class="sa">Valor total estimado subsidio</label><div class="dato destacado sa" id="cSubsidio"></div>
+      <label class="sa">Costo de carencia</label><div class="dato sa" id="cCostoCar"></div>
       <label>Días de licencia en 2 años (con esta)</label><div class="dato" id="c150"></div>
       <label>Situación 150/180</label><div class="dato" id="cSit150"></div>
     </div>
@@ -217,11 +223,13 @@
       <button class="primario" id="btnBuscar">BUSCAR</button>
     </div>
     <div class="resumen" id="resumen">Escribe un RUT o parte del nombre: los resultados aparecen mientras escribes.</div>
+    <div id="panelBorrar" class="aviso naranja"></div>
+    <div id="resultadoBorrar" class="aviso"></div>
     <div class="tabla-cont" id="tablaCont" style="display:none">
       <table>
         <thead><tr>
           <th>Nombre</th><th>RUT</th><th>Folio</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Tipo</th>
-          <th>Entidad</th><th>Estado</th><th>Estado de pago</th><th>Monto pagado</th><th>Observaciones</th><th>Fila</th>
+          <th>Entidad</th><th>Estado</th><th>Estado de pago</th><th>Monto pagado</th><th>Observaciones</th><th>Fila</th><th></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -256,6 +264,27 @@
       <span id="estadoAplicar" class="cargando"></span>
     </div>
     <div id="resultadoLiq" class="aviso"></div>
+  </section>
+  <!-- ======================= USUARIOS ======================= -->
+  <section id="v-usuarios" class="vista">
+    <div class="seccion">USUARIOS DE LA PÁGINA</div>
+    <p class="ayuda" style="font-style:normal;font-size:12px;margin:0 0 10px"><b>Administrador:</b> ve todo (sueldos, todas las hojas), carga liquidaciones y administra usuarios.
+      <b>Normal:</b> ingresa, busca y borra licencias y ve el Consolidado <u>sin columnas de sueldos</u>.</p>
+    <div class="grid" style="max-width:900px">
+      <label for="uCorreo">Correo</label><input id="uCorreo" type="email" autocomplete="off">
+      <label for="uNombre">Nombre</label><input id="uNombre" autocomplete="off">
+      <label for="uClave">Clave</label><input id="uClave" type="text" autocomplete="off" placeholder="mínimo 6 caracteres">
+      <label for="uRol">Rol</label><select id="uRol"><option value="NORMAL">Normal</option><option value="ADMIN">Administrador</option></select>
+    </div>
+    <div class="acciones">
+      <button class="primario" id="btnGuardarUsuario">AGREGAR / ACTUALIZAR</button>
+      <button id="btnLimpiarUsuario">Limpiar</button>
+      <span class="ayuda">Para cambiar la clave o el rol de alguien, haz clic en "Editar". Si dejas la clave vacía, no se cambia.</span>
+    </div>
+    <div id="resultadoUsuario" class="aviso"></div>
+    <div class="tabla-cont" style="margin-top:12px;max-width:900px">
+      <table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th></th></tr></thead><tbody id="tbodyUsuarios"></tbody></table>
+    </div>
   </section>
 </main>
 
@@ -341,7 +370,7 @@ document.getElementById('btnSalir').addEventListener('click', function () {
   borrarSesion(); location.hash = ''; location.reload();
 });
 pintarUsuario();
-var cfg = null, DB = null, func = null, folioDup = null, ultimo = null, confirmado = false, cargando = false;
+var ROL = 'ADMIN', cfg = null, DB = null, func = null, folioDup = null, ultimo = null, confirmado = false, cargando = false;
 var MESES_MIN = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 // columnas de DB.lic
 var L_FILA = 0, L_RUN = 1, L_DV = 2, L_NOM = 3, L_DESDE = 4, L_HASTA = 5, L_FOLIO = 6, L_TIPO = 7, L_ENT = 8, L_EST = 9,
@@ -396,6 +425,7 @@ function mostrarVista(v) {
   document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('activa', t.dataset.vista === v); });
   setTimeout(function () { ({ buscar: $('qBuscar'), hojas: $('qHoja') }[v] || $('rut')).focus(); }, 50);
   if (v === 'hojas' && !hojaActual) abrirHoja('Consolidado total');
+  if (v === 'usuarios') cargarUsuarios();
 }
 document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { mostrarVista(t.dataset.vista); }); });
 
@@ -417,6 +447,7 @@ function cargarDatos(manual) {
     cargando = false;
     var primera = !DB;
     DB = d; cfg = d.cfg;
+    aplicarRol(d.rol || 'ADMIN');
     DB.funcPorRun = {};
     d.func.forEach(function (f) { DB.funcPorRun[f[0]] = f; });
     DB.cargadoMs = Date.now();
@@ -573,7 +604,7 @@ function recalcular() {
 
   var al = [];
   if (desde && hasta && dHasta < dDesde) al.push('HASTA es anterior a DESDE.');
-  if (func && desde && faltan > 0) al.push('Falta imponible: escríbelo a mano en "Si falta, escribir aquí".');
+  if (ROL === 'ADMIN' && func && desde && faltan > 0) al.push('Falta imponible: escríbelo a mano en "Si falta, escribir aquí".');
   $('alertas').innerHTML = al.map(function (a) { return '<div>' + esc(a) + '</div>'; }).join('');
 }
 function excluida(tipo) {
@@ -634,11 +665,10 @@ function deshacer() {
   if (!ultimo) return;
   var u = ultimo;
   aviso($('resultado'), '', '<span class="cargando">Deshaciendo…</span>'); $('resultado').classList.add('ver');
-  servidor.run.withSuccessHandler(function () {
+  servidor.run.withSuccessHandler(function (r) {
     ultimo = null;
-    DB.lic = DB.lic.filter(function (x) { return x[L_FILA] !== u.fila; });
-    DB.lic.forEach(function (x) { if (x[L_FILA] > u.fila) x[L_FILA]--; });
-    $('estadoDatos').textContent = DB.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + DB.cargado;
+    quitarDeDB(u.fila, r && r.eliminada);
+    cacheHojas = {};
     aviso($('resultado'), 'naranja', 'Se borró la licencia folio ' + esc(u.folio) + ' (fila ' + u.fila + ') del Consolidado.');
   }).withFailureHandler(function (e) { aviso($('resultado'), 'rojo', esc(e.message || e)); }).deshacerLicencia(u.fila, u.folio);
 }
@@ -687,7 +717,7 @@ function buscar() {
       '</td><td class="c">' + isoADmy(x[L_DESDE]) + '</td><td class="c">' + isoADmy(x[L_HASTA]) + '</td><td class="c">' + esc(x[L_DIAS]) +
       '</td><td>' + esc(t ? (tipos[t] ? t + ' - ' + tipos[t] : t) : '') + '</td><td>' + esc(x[L_ENT]) + '</td><td>' + esc(x[L_EST]) +
       '</td><td>' + esc(x[L_PAGO]) + '</td><td class="n">' + fmt(x[L_MONTO]) + '</td><td class="obs">' + esc(x[L_OBS]) +
-      '</td><td class="c">' + x[L_FILA] + '</td></tr>';
+      '</td><td class="c">' + x[L_FILA] + '</td><td><button class="btn-borrar" data-fila="' + x[L_FILA] + '" data-folio="' + esc(x[L_FOLIO]) + '">Borrar</button></td></tr>';
   }).join('');
 }
 var tBuscar = null;
@@ -697,7 +727,7 @@ $('btnBuscar').addEventListener('click', buscar);
 
 
 // ------------------------------------------------------------------ hojas (solo lectura)
-var HOJAS = ['Consolidado total', 'BD IMPONIBLES', 'FUNCIONARIOS', '150-180 DIAS', 'CARENCIA 2026', 'POSTNATAL PARENTAL', 'LISTAS', 'INSTRUCCIONES'];
+var HOJAS = ['Consolidado total', 'BD IMPONIBLES', 'FUNCIONARIOS', '150-180 DIAS', 'CARENCIA 2026', 'LICENCIAS BORRADAS'];
 var cacheHojas = {}, hojaActual = null, hojaFiltradas = [], hojaMostrar = 300;
 $('chipsHojas').innerHTML = HOJAS.map(function (h) { return '<button class="chip" data-hoja="' + esc(h) + '">' + esc(h) + '</button>'; }).join('');
 document.querySelectorAll('.chip').forEach(function (c) { c.addEventListener('click', function () { abrirHoja(c.dataset.hoja); }); });
@@ -963,8 +993,107 @@ $('btnAplicarLiq').addEventListener('click', function () {
   }).aplicarLiquidaciones(payload);
 });
 
+
+// ------------------------------------------------------------------ roles
+var HOJAS_ADMIN = ['Consolidado total', 'BD IMPONIBLES', 'FUNCIONARIOS', '150-180 DIAS', 'CARENCIA 2026', 'LICENCIAS BORRADAS'];
+function aplicarRol(rol) {
+  ROL = rol === 'ADMIN' ? 'ADMIN' : 'NORMAL';
+  document.body.classList.toggle('normal', ROL !== 'ADMIN');
+  var visibles = ROL === 'ADMIN' ? HOJAS_ADMIN : ['Consolidado total'];
+  document.querySelectorAll('.chip').forEach(function (c) { c.style.display = visibles.indexOf(c.dataset.hoja) >= 0 ? '' : 'none'; });
+  var activa = document.querySelector('.tab.activa');
+  if (ROL !== 'ADMIN' && activa && activa.classList.contains('sa')) mostrarVista('ingreso');
+  if (ROL !== 'ADMIN') { DB.imp = {}; }
+}
+
+// ------------------------------------------------------------------ borrar licencia (con registro)
+var aBorrar = null;
+$('tbody').addEventListener('click', function (e) {
+  var b = e.target.closest('.btn-borrar');
+  if (!b) return;
+  var fila = Number(b.dataset.fila), x = DB.lic.filter(function (l) { return l[L_FILA] === fila; })[0];
+  if (!x) return;
+  aBorrar = { fila: fila, folio: x[L_FOLIO] };
+  aviso($('resultadoBorrar'), '', '');
+  aviso($('panelBorrar'), 'naranja', '<b>¿Borrar la licencia folio ' + esc(x[L_FOLIO]) + '</b> de ' + esc(x[L_NOM]) + ' (' + isoADmy(x[L_DESDE]) + ' al ' +
+    isoADmy(x[L_HASTA]) + ', fila ' + fila + ')?<br>Quedará registrada en la hoja LICENCIAS BORRADAS con tu usuario, la fecha y el motivo.' +
+    '<input id="motivoBorrar" placeholder="Motivo (obligatorio): ej. folio mal digitado, licencia duplicada…">' +
+    '<button class="primario" id="btnConfirmarBorrar" style="background:var(--rojo);border-color:var(--rojo)">SÍ, BORRAR</button><button id="btnCancelarBorrar">Cancelar</button>');
+  $('motivoBorrar').focus();
+  $('btnCancelarBorrar').addEventListener('click', function () { aBorrar = null; aviso($('panelBorrar'), '', ''); });
+  $('btnConfirmarBorrar').addEventListener('click', confirmarBorrar);
+  $('panelBorrar').scrollIntoView({ block: 'nearest' });
+});
+function confirmarBorrar() {
+  var motivo = $('motivoBorrar').value.trim();
+  if (motivo.length < 3) { $('motivoBorrar').classList.add('error'); $('motivoBorrar').focus(); return; }
+  var u = aBorrar; if (!u) return;
+  $('btnConfirmarBorrar').disabled = true; $('btnConfirmarBorrar').textContent = 'Borrando…';
+  servidor.run.withSuccessHandler(function (r) {
+    quitarDeDB(u.fila, r.eliminada);
+    aBorrar = null; aviso($('panelBorrar'), '', '');
+    aviso($('resultadoBorrar'), 'verde', '✔ Licencia folio ' + esc(u.folio) + ' borrada. Quedó registrada en LICENCIAS BORRADAS.');
+    cacheHojas = {};
+    buscar();
+  }).withFailureHandler(function (e) {
+    aviso($('panelBorrar'), '', ''); aBorrar = null;
+    aviso($('resultadoBorrar'), 'rojo', esc(e.message || e));
+  }).borrarLicencia(u.fila, u.folio, motivo);
+}
+function quitarDeDB(fila, eliminada) {
+  DB.lic = DB.lic.filter(function (x) { return x[L_FILA] !== fila; });
+  if (eliminada) DB.lic.forEach(function (x) { if (x[L_FILA] > fila) x[L_FILA]--; });
+  $('estadoDatos').textContent = DB.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + DB.cargado;
+}
+
+// ------------------------------------------------------------------ usuarios (solo administradores)
+var listaUsuarios = [];
+function cargarUsuarios() {
+  $('tbodyUsuarios').innerHTML = '<tr><td colspan="4" class="cargando">Cargando…</td></tr>';
+  servidor.run.withSuccessHandler(function (l) {
+    listaUsuarios = l;
+    $('tbodyUsuarios').innerHTML = l.map(function (u, i) {
+      return '<tr><td>' + esc(u.correo) + (u.yo ? ' <span class="ayuda">(tú)</span>' : '') + '</td><td>' + esc(u.nombre) + '</td><td class="' +
+        (u.rol === 'ADMIN' ? 'rol-admin' : '') + '">' + (u.rol === 'ADMIN' ? 'Administrador' : 'Normal') + (u.tieneClave ? '' : ' <span class="ayuda">(sin clave)</span>') +
+        '</td><td><button class="btn-editar-u" data-i="' + i + '" style="padding:3px 10px;font-size:11px">Editar</button>' +
+        (u.yo ? '' : ' <button class="btn-quitar-u btn-borrar" data-i="' + i + '">Quitar</button>') + '</td></tr>';
+    }).join('') || '<tr><td colspan="4">No hay usuarios.</td></tr>';
+  }).withFailureHandler(function (e) { $('tbodyUsuarios').innerHTML = '<tr><td colspan="4">' + esc(e.message || e) + '</td></tr>'; }).listarUsuarios();
+}
+$('tbodyUsuarios').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  var u = listaUsuarios[Number(b.dataset.i)]; if (!u) return;
+  if (b.classList.contains('btn-editar-u')) {
+    $('uCorreo').value = u.correo; $('uNombre').value = u.nombre; $('uRol').value = u.rol; $('uClave').value = '';
+    $('uClave').placeholder = 'déjala vacía para no cambiarla'; aviso($('resultadoUsuario'), '', ''); $('uNombre').focus();
+  } else if (b.classList.contains('btn-quitar-u')) {
+    if (b.dataset.confirmar !== '1') { b.dataset.confirmar = '1'; b.textContent = '¿Seguro? Quitar'; return; }
+    b.disabled = true;
+    servidor.run.withSuccessHandler(function () {
+      aviso($('resultadoUsuario'), 'verde', '✔ Se quitó el acceso a ' + esc(u.correo) + '.'); cargarUsuarios();
+    }).withFailureHandler(function (er) { aviso($('resultadoUsuario'), 'rojo', esc(er.message || er)); cargarUsuarios(); }).quitarUsuario(u.correo);
+  }
+});
+$('btnGuardarUsuario').addEventListener('click', function () {
+  var d = { correo: $('uCorreo').value.trim(), nombre: $('uNombre').value.trim(), clave: $('uClave').value.trim(), rol: $('uRol').value };
+  if (!d.correo) { aviso($('resultadoUsuario'), 'rojo', 'Escribe el correo.'); return; }
+  $('btnGuardarUsuario').disabled = true;
+  servidor.run.withSuccessHandler(function (r) {
+    $('btnGuardarUsuario').disabled = false;
+    aviso($('resultadoUsuario'), 'verde', '✔ ' + (r.nuevo ? 'Usuario agregado: ' : 'Usuario actualizado: ') + esc(d.correo) +
+      (d.clave ? '. Entrégale su clave de forma privada.' : '.'));
+    limpiarUsuario(true); cargarUsuarios();
+  }).withFailureHandler(function (e) { $('btnGuardarUsuario').disabled = false; aviso($('resultadoUsuario'), 'rojo', esc(e.message || e)); }).guardarUsuario(d);
+});
+function limpiarUsuario(mantener) {
+  ['uCorreo', 'uNombre', 'uClave'].forEach(function (id) { $(id).value = ''; });
+  $('uRol').value = 'NORMAL'; $('uClave').placeholder = 'mínimo 6 caracteres';
+  if (!mantener) aviso($('resultadoUsuario'), '', '');
+}
+$('btnLimpiarUsuario').addEventListener('click', function () { limpiarUsuario(false); });
+
 // ------------------------------------------------------------------ inicio
-mostrarVista(['buscar', 'hojas', 'liq'].indexOf(VISTA_INICIAL) >= 0 ? VISTA_INICIAL : 'ingreso');
+mostrarVista(['buscar', 'hojas', 'liq', 'usuarios'].indexOf(VISTA_INICIAL) >= 0 ? VISTA_INICIAL : 'ingreso');
 actualizarBoton();
 cargarDatos();
 </script>
