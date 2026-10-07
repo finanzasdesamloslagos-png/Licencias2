@@ -343,20 +343,43 @@ function leerSesion() {
 function guardarSesion(x) { sesion = x; try { sessionStorage.setItem('lic_sesion', JSON.stringify(x)); } catch (e) {} }
 function borrarSesion() { sesion = null; try { sessionStorage.removeItem('lic_sesion'); } catch (e) {} }
 
+// Google a veces no entrega la respuesta (error 404 intermitente o texto que no es de la API).
+// Las consultas que se pueden repetir sin riesgo se reintentan solas; las que escriben datos no.
+var REINTENTABLES = ['ingresar', 'cargarTodo', 'leerHoja', 'listarUsuarios', 'datosConsolidado', 'aplicarLiquidaciones', 'guardarUsuario'];
+function errorRed(msg) { var e = new Error(msg); e.red = true; return e; }
 function postApi(cuerpo) {
   return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(cuerpo) })
-    .then(function (r) { return r.json(); });
+    .then(function (r) {
+      return r.text().then(function (t) {
+        try { return JSON.parse(t); }
+        catch (e) { throw errorRed('Google no entregó la respuesta (código ' + r.status + ').'); }
+      });
+    }, function (e) { throw errorRed('Sin conexión con Google (' + e.message + ').'); });
+}
+function postConReintentos(cuerpo, intento) {
+  intento = intento || 1;
+  return postApi(cuerpo).catch(function (e) {
+    if (e.red && REINTENTABLES.indexOf(cuerpo.fn) >= 0 && intento < 4) {
+      var espera = [0, 1500, 3000, 5000][intento];
+      var est = document.getElementById('estadoDatos');
+      if (est && cuerpo.fn === 'cargarTodo') est.textContent = 'Google está lento, reintentando (' + (intento + 1) + ' de 4)…';
+      return new Promise(function (ok) { setTimeout(ok, espera); }).then(function () { return postConReintentos(cuerpo, intento + 1); });
+    }
+    throw e;
+  });
 }
 function llamarApi(fn, args, ok, err) {
   if (!sesion) { cola.push([fn, args, ok, err]); pedirLogin(); return; }
-  postApi({ fn: fn, args: args, token: sesion.token })
+  postConReintentos({ fn: fn, args: args, token: sesion.token })
     .then(function (res) {
       if (res.ok) { if (ok) ok(res.data); }
       else if (res.auth) { borrarSesion(); cola.push([fn, args, ok, err]); pedirLogin(res.error); }
       else if (err) err(new Error(res.error));
     })
     .catch(function (e) {
-      if (err) err(new Error('No se pudo conectar con la planilla. Revisa tu internet o la URL de la API (' + e.message + ').'));
+      if (!err) return;
+      var m = e.red ? e.message + ' Esto es una falla temporal de Google, no de la planilla. Espera unos segundos y vuelve a intentarlo.' : e.message;
+      var e2 = new Error(m); e2.red = !!e.red; err(e2);
     });
 }
 
@@ -383,7 +406,7 @@ document.getElementById('formLogin').addEventListener('submit', function (e) {
   if (!configOk) return;
   var b = document.getElementById('btnIngresar'), m = document.getElementById('loginMsg');
   b.disabled = true; b.textContent = 'Ingresando…'; m.textContent = '';
-  postApi({ fn: 'ingresar', args: [document.getElementById('lCorreo').value, document.getElementById('lClave').value] })
+  postConReintentos({ fn: 'ingresar', args: [document.getElementById('lCorreo').value, document.getElementById('lClave').value] })
     .then(function (res) {
       b.disabled = false; b.textContent = 'INGRESAR';
       if (!res.ok) { m.textContent = res.error; return; }
@@ -397,7 +420,7 @@ document.getElementById('formLogin').addEventListener('submit', function (e) {
     })
     .catch(function (e2) {
       b.disabled = false; b.textContent = 'INGRESAR';
-      m.textContent = 'No se pudo conectar con la planilla (' + e2.message + ').';
+      m.textContent = e2.message + ' Es una falla temporal de Google; inténtalo de nuevo en unos segundos.';
     });
 });
 try { var correoGuardado = localStorage.getItem('lic_correo'); if (correoGuardado) document.getElementById('lCorreo').value = correoGuardado; } catch (e4) {}
@@ -701,10 +724,36 @@ $('btnGuardar').addEventListener('click', function () {
     $('btnDeshacer').addEventListener('click', deshacer);
     limpiar(true);
   }).withFailureHandler(function (e) {
+    if (e && e.red) { verificarGuardado(d); return; }
     $('estadoGuardar').textContent = ''; actualizarBoton();
     aviso($('resultado'), 'rojo', esc(e.message || e));
   }).guardarLicencia(d);
 });
+
+// Si Google no entregó la confirmación, se vuelve a leer la planilla para ver si la licencia quedó guardada.
+function verificarGuardado(d) {
+  $('estadoGuardar').textContent = 'Google no confirmó el guardado; revisando si la licencia quedó en la planilla…';
+  servidor.run.withSuccessHandler(function (nuevo) {
+    $('estadoGuardar').textContent = '';
+    DB = nuevo; cfg = nuevo.cfg; DB.funcPorRun = {}; nuevo.func.forEach(function (f) { DB.funcPorRun[f[0]] = f; }); DB.cargadoMs = Date.now();
+    $('estadoDatos').textContent = DB.lic.length.toLocaleString('es-CL') + ' licencias · actualizado ' + DB.cargado;
+    var x = folioLocal(d.folio);
+    if (x) {
+      ultimo = { fila: x[L_FILA], folio: x[L_FOLIO], nombre: x[L_NOM] };
+      aviso($('resultado'), 'verde', '✔ Licencia de <b>' + esc(x[L_NOM]) + '</b> (folio ' + esc(x[L_FOLIO]) + ') guardada en la fila ' + x[L_FILA] +
+        ' del Consolidado. <button id="btnDeshacer" style="margin-left:10px;padding:4px 12px">Deshacer</button>');
+      $('btnDeshacer').addEventListener('click', deshacer);
+      limpiar(true);
+    } else {
+      actualizarBoton();
+      aviso($('resultado'), 'rojo', 'La licencia <b>no</b> se guardó porque Google tuvo una falla temporal. Tus datos siguen en el formulario: presiona GUARDAR de nuevo.');
+    }
+  }).withFailureHandler(function () {
+    $('estadoGuardar').textContent = ''; actualizarBoton();
+    aviso($('resultado'), 'naranja', 'Google tiene una falla temporal y no se pudo confirmar si la licencia quedó guardada. Espera un momento, presiona ↻ Actualizar y busca el folio ' +
+      esc(d.folio) + ' antes de volver a guardar (si ya está, no lo guardes de nuevo: el sistema igual bloquea los folios repetidos).');
+  }).cargarTodo();
+}
 
 function deshacer() {
   if (!ultimo) return;
@@ -1086,7 +1135,10 @@ function confirmarBorrar() {
     buscar();
   }).withFailureHandler(function (e) {
     aviso($('panelBorrar'), '', ''); aBorrar = null;
-    aviso($('resultadoBorrar'), 'rojo', esc(e.message || e));
+    if (e && e.red) {
+      aviso($('resultadoBorrar'), 'naranja', 'Google no confirmó el borrado (falla temporal). Actualizo los datos: revisa si el folio ' + esc(u.folio) + ' sigue apareciendo antes de intentarlo de nuevo.');
+      cacheHojas = {}; cargarDatos(true);
+    } else aviso($('resultadoBorrar'), 'rojo', esc(e.message || e));
   }).borrarLicencia(u.fila, u.folio, motivo);
 }
 function quitarDeDB(fila, eliminada) {
